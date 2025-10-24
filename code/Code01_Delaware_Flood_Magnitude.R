@@ -64,34 +64,34 @@ for (water.year in water.years[2:length(water.years)]) {
       # cannot model for parameters with no variability
       gg.colors = carto_pal(15, "Sunset")
       
-      # create a placeholder dataframe
-      mod_train = DE.obs
-      mod_train$value = DE.obs$Cent.97.5
-      mod_train$se.fit = 0.001
-      mod_train$value.type = "Residual"
-      mod_train$season = seas.name
-      mod_train$cv_resid = 0
-      
-      gg1 = ggplot() +
-        geom_sf(data = DE_ssn$edges, aes(linewidth=log10(afvArea+1)/10), color="gray") +
-        geom_sf(data = mod_train, aes(fill = value, size=-log10(se.fit)/5),
-                color="black", shape=21) +
-        scale_fill_stepsn(name="LOOCV Residual", colors=carto_pal(15, "Geyser"),
-                          n.breaks=15, limits=c(-10000,10000)) +
-        coord_sf(datum = 4326) +
-        facet_grid(season ~ value.type) +
-        theme_bw() + scale_linewidth(guide = 'none') +
-        scale_size(guide='none') + guides(fill="none") +
-        theme(plot.margin = unit(c(0,0,0,0), "cm"),
-              # legend.position = c(0.9,0.7),
-              legend.position = "right",
-              legend.direction = "vertical",
-              legend.box.background = element_rect(color="black"))
-      
-      seas.resids[[i]] <- gg1
-      
-      # refit torgegram to residuals
-      DE_ssn$obs$resid = mod_train$cv_resid
+      # # create a placeholder dataframe
+      # mod_train = DE.obs
+      # mod_train$value = DE.obs$Cent.97.5
+      # mod_train$se.fit = 0.001
+      # mod_train$value.type = "Residual"
+      # mod_train$season = seas.name
+      # mod_train$cv_resid = 0
+      # 
+      # gg1 = ggplot() +
+      #   geom_sf(data = DE_ssn$edges, aes(linewidth=log10(afvArea+1)/10), color="gray") +
+      #   geom_sf(data = mod_train, aes(fill = value, size=-log10(se.fit)/5),
+      #           color="black", shape=21) +
+      #   scale_fill_stepsn(name="LOOCV Residual", colors=carto_pal(15, "Geyser"),
+      #                     n.breaks=15, limits=c(-10000,10000)) +
+      #   coord_sf(datum = 4326) +
+      #   facet_grid(season ~ value.type) +
+      #   theme_bw() + scale_linewidth(guide = 'none') +
+      #   scale_size(guide='none') + guides(fill="none") +
+      #   theme(plot.margin = unit(c(0,0,0,0), "cm"),
+      #         # legend.position = c(0.9,0.7),
+      #         legend.position = "right",
+      #         legend.direction = "vertical",
+      #         legend.box.background = element_rect(color="black"))
+      # 
+      # seas.resids[[i]] <- gg1
+      # 
+      # # refit torgegram to residuals
+      # DE_ssn$obs$resid = mod_train$cv_resid
       
       tg.orig <- Torgegram(
         formula = Cent.97.5~1,
@@ -100,12 +100,12 @@ for (water.year in water.years[2:length(water.years)]) {
         type = c("flowcon", "flowuncon", "euclid")
       )
       
-      tg.mod <- Torgegram(
-        formula = resid ~ 1,
-        ssn.object = DE_ssn,
-        bins=15, cutoff=max(DE_ssn$obs$upDist)/2,
-        type = c("flowcon", "flowuncon", "euclid")
-      )
+      # tg.mod <- Torgegram(
+      #   formula = resid ~ 1,
+      #   ssn.object = DE_ssn,
+      #   bins=15, cutoff=max(DE_ssn$obs$upDist)/2,
+      #   type = c("flowcon", "flowuncon", "euclid")
+      # )
       
       gg2 = ggplot() +
         geom_point(data=tg.orig$flowcon,
@@ -124,133 +124,133 @@ for (water.year in water.years[2:length(water.years)]) {
               legend.title = element_blank(),
               legend.box.background = element_rect(color="black"))
       
-      gg3 = ggplot() +
-        geom_point(data=tg.mod$flowcon, mapping=aes(dist, gamma, size=np),
-                   color="turquoise", alpha=0.7) +
-        geom_point(data=tg.mod$flowuncon, mapping=aes(dist, gamma, size=np),
-                   color="orange", alpha=0.7) +
-        geom_point(data=tg.mod$euclid, mapping=aes(dist, gamma, size=np),
-                   color="gray", alpha=0.7) +
-        xlab("Distance") + labs(title=paste0(seas.name, " Model Residuals")) +
-        ylab("Semivariance") +
-        theme_bw() + scale_size(guide = 'none')
+      # gg3 = ggplot() +
+      #   geom_point(data=tg.mod$flowcon, mapping=aes(dist, gamma, size=np),
+      #              color="turquoise", alpha=0.7) +
+      #   geom_point(data=tg.mod$flowuncon, mapping=aes(dist, gamma, size=np),
+      #              color="orange", alpha=0.7) +
+      #   geom_point(data=tg.mod$euclid, mapping=aes(dist, gamma, size=np),
+      #              color="gray", alpha=0.7) +
+      #   xlab("Distance") + labs(title=paste0(seas.name, " Model Residuals")) +
+      #   ylab("Semivariance") +
+      #   theme_bw() + scale_size(guide = 'none')
       
       seas.torgegram.orig[[i]] <- gg2
-      seas.torgegram.resid[[i]] <- gg3
+      # seas.torgegram.resid[[i]] <- gg3
       
     } else {
-      # ssn model specification
-      tailupparam = taildownparam = euclidparam = NULL
-      ssn_mods <- list()
-      counter = 1
-      # spatial interpolation function to compare models
-      for (tailup_type in c("none", "exponential", "spherical", "linear")) {
-        for (taildown_type in c("none", "exponential", "spherical", "linear")) {
-          for (euclid_type in c("none", "exponential", "spherical", "cubic")) {
-      # for (tailup_type in c("none", "exponential")) {
-      #   for (taildown_type in c("none", "exponential")) {
-      #     for (euclid_type in c("none", "exponential")) {
-            print(paste0("Tailup: ", tailup_type, ", Taildown: ", taildown_type,
-                         ", Euclid: ", euclid_type))
-            ssn_mod <- ssn_lm(
-              formula = Cent.97.5~1,
-              ssn.object = DE_ssn,
-              tailup_type = tailup_type,
-              taildown_type = taildown_type,
-              euclid_type = euclid_type,
-              additive = "afvArea",
-              estmethod = "reml")
-            tailupparam = c(tailupparam, tailup_type)
-            taildownparam = c(taildownparam, taildown_type)
-            euclidparam = c(euclidparam, euclid_type)
-            ssn_mods[[counter]] <- ssn_mod
-            counter = counter + 1
-          } # end euclidean loop
-        } # end tail down loop
-      } # end tail up loop
-      
-      AICs <- NULL
-      CV.rmspes <- NULL
-      for (s in ssn_mods) {
-        g = glance(s)
-        # print(g)
-        AICs <- c(AICs, g$AIC)
-        # loocv_mod <- loocv(s)
-        # CV.rmspes <- c(CV.rmspes, loocv_mod$RMSPE)
-      }
-      
-      # get the smallest AIC or RMSPE
-      # df <- data.frame(i=1:length(AICs), AIC=AICs, CV=CV.rmspes,
+      # # ssn model specification
+      # tailupparam = taildownparam = euclidparam = NULL
+      # ssn_mods <- list()
+      # counter = 1
+      # # spatial interpolation function to compare models
+      # for (tailup_type in c("none", "exponential", "spherical", "linear")) {
+      #   for (taildown_type in c("none", "exponential", "spherical", "linear")) {
+      #     for (euclid_type in c("none", "exponential", "spherical", "cubic")) {
+      # # for (tailup_type in c("none", "exponential")) {
+      # #   for (taildown_type in c("none", "exponential")) {
+      # #     for (euclid_type in c("none", "exponential")) {
+      #       print(paste0("Tailup: ", tailup_type, ", Taildown: ", taildown_type,
+      #                    ", Euclid: ", euclid_type))
+      #       ssn_mod <- ssn_lm(
+      #         formula = Cent.97.5~1,
+      #         ssn.object = DE_ssn,
+      #         tailup_type = tailup_type,
+      #         taildown_type = taildown_type,
+      #         euclid_type = euclid_type,
+      #         additive = "afvArea",
+      #         estmethod = "reml")
+      #       tailupparam = c(tailupparam, tailup_type)
+      #       taildownparam = c(taildownparam, taildown_type)
+      #       euclidparam = c(euclidparam, euclid_type)
+      #       ssn_mods[[counter]] <- ssn_mod
+      #       counter = counter + 1
+      #     } # end euclidean loop
+      #   } # end tail down loop
+      # } # end tail up loop
+      # 
+      # AICs <- NULL
+      # CV.rmspes <- NULL
+      # for (s in ssn_mods) {
+      #   g = glance(s)
+      #   # print(g)
+      #   AICs <- c(AICs, g$AIC)
+      #   # loocv_mod <- loocv(s)
+      #   # CV.rmspes <- c(CV.rmspes, loocv_mod$RMSPE)
+      # }
+      # 
+      # # get the smallest AIC or RMSPE
+      # # df <- data.frame(i=1:length(AICs), AIC=AICs, CV=CV.rmspes,
+      # #                  euclid=euclidparam, tailup=tailupparam, taildown=taildownparam,
+      # #                  season=seas.name)
+      # df <- data.frame(i=1:length(AICs), AIC=AICs,
       #                  euclid=euclidparam, tailup=tailupparam, taildown=taildownparam,
       #                  season=seas.name)
-      df <- data.frame(i=1:length(AICs), AIC=AICs,
-                       euclid=euclidparam, tailup=tailupparam, taildown=taildownparam,
-                       season=seas.name)
-      df <- df %>% filter(AIC == min(AIC))
-      # df <- df %>% filter(CV == min(CV))
-      df.AIC = rbind(df.AIC, df)
-      min.idx <- df$i[1]
-      
-      # leave-one-out cross validation
-      ssn_mod = ssn_mods[[min.idx]]
-      loocv_mod <- loocv(ssn_mod, cv_predict=T, se.fit=T)
-      
-      # cross validation results
-      mod_train <- augment(ssn_mod)
-      mod_train$cv_pred = loocv_mod$cv_predict
-      mod_train$cv_se = loocv_mod$se.fit
-      mod_train$cv_resid = mod_train$cv_pred - mod_train$Cent.97.5
-      
-      # combine data
-      mod_train$value.type = "Residual"
-      mod_train$value = mod_train$cv_resid
-      mod_train$se.fit = loocv_mod$se.fit
-      mod_train$season = seas.name
-      
-      ################################################################################
-      gg.colors = carto_pal(15, "Sunset")
-      
-      if (seas.name == "AnnualMaxima") {
-        gg1 = ggplot() +
-          geom_sf(data = DE_ssn$edges, aes(linewidth=log10(afvArea+1)/10), color="gray") +
-          geom_sf(data = mod_train, aes(fill = value, size=-log10(se.fit)/5),
-                  color="black", shape=21) +
-          scale_fill_stepsn(name="CV Resid", colors=carto_pal(15, "Geyser"),
-                            n.breaks=15, limits=c(-10000,10000)) +
-          coord_sf(datum = 4326) +
-          facet_grid(season ~ value.type) +
-          theme_bw() + scale_linewidth(guide = 'none') +
-          scale_size(guide='none') +
-          # guides(fill="none") +
-          theme(plot.margin = unit(c(0,0,0,0), "cm"),
-                # legend.position = c(0.9,0.7),
-                legend.position = "right",
-                legend.direction = "vertical",
-                legend.box.background = element_rect(color="black"))
-      } else {
-        gg1 = ggplot() +
-          geom_sf(data = DE_ssn$edges, aes(linewidth=log10(afvArea+1)/10), color="gray") +
-          geom_sf(data = mod_train, aes(fill = value, size=-log10(se.fit)/5),
-                  color="black", shape=21) +
-          scale_fill_stepsn(name="CV Resid", colors=carto_pal(15, "Geyser"),
-                            n.breaks=15, limits=c(-10000,10000)) +
-          coord_sf(datum = 4326) +
-          facet_grid(season ~ value.type) +
-          theme_bw() + scale_linewidth(guide = 'none') +
-          scale_size(guide='none') +
-          # guides(fill="none") +
-          theme(plot.margin = unit(c(0,0,0,0), "cm"),
-                # legend.position = c(0.9,0.7),
-                legend.position = "none",
-                legend.direction = "vertical",
-                legend.box.background = element_rect(color="black"))
-      }
-      
-      seas.resids[[i]] <- gg1
-      
-      ################################################################################
-      # refit torgegram to residuals
-      DE_ssn$obs$resid = mod_train$cv_resid
+      # df <- df %>% filter(AIC == min(AIC))
+      # # df <- df %>% filter(CV == min(CV))
+      # df.AIC = rbind(df.AIC, df)
+      # min.idx <- df$i[1]
+      # 
+      # # leave-one-out cross validation
+      # ssn_mod = ssn_mods[[min.idx]]
+      # loocv_mod <- loocv(ssn_mod, cv_predict=T, se.fit=T)
+      # 
+      # # cross validation results
+      # mod_train <- augment(ssn_mod)
+      # mod_train$cv_pred = loocv_mod$cv_predict
+      # mod_train$cv_se = loocv_mod$se.fit
+      # mod_train$cv_resid = mod_train$cv_pred - mod_train$Cent.97.5
+      # 
+      # # combine data
+      # mod_train$value.type = "Residual"
+      # mod_train$value = mod_train$cv_resid
+      # mod_train$se.fit = loocv_mod$se.fit
+      # mod_train$season = seas.name
+      # 
+      # ################################################################################
+      # gg.colors = carto_pal(15, "Sunset")
+      # 
+      # if (seas.name == "AnnualMaxima") {
+      #   gg1 = ggplot() +
+      #     geom_sf(data = DE_ssn$edges, aes(linewidth=log10(afvArea+1)/10), color="gray") +
+      #     geom_sf(data = mod_train, aes(fill = value, size=-log10(se.fit)/5),
+      #             color="black", shape=21) +
+      #     scale_fill_stepsn(name="CV Resid", colors=carto_pal(15, "Geyser"),
+      #                       n.breaks=15, limits=c(-10000,10000)) +
+      #     coord_sf(datum = 4326) +
+      #     facet_grid(season ~ value.type) +
+      #     theme_bw() + scale_linewidth(guide = 'none') +
+      #     scale_size(guide='none') +
+      #     # guides(fill="none") +
+      #     theme(plot.margin = unit(c(0,0,0,0), "cm"),
+      #           # legend.position = c(0.9,0.7),
+      #           legend.position = "right",
+      #           legend.direction = "vertical",
+      #           legend.box.background = element_rect(color="black"))
+      # } else {
+      #   gg1 = ggplot() +
+      #     geom_sf(data = DE_ssn$edges, aes(linewidth=log10(afvArea+1)/10), color="gray") +
+      #     geom_sf(data = mod_train, aes(fill = value, size=-log10(se.fit)/5),
+      #             color="black", shape=21) +
+      #     scale_fill_stepsn(name="CV Resid", colors=carto_pal(15, "Geyser"),
+      #                       n.breaks=15, limits=c(-10000,10000)) +
+      #     coord_sf(datum = 4326) +
+      #     facet_grid(season ~ value.type) +
+      #     theme_bw() + scale_linewidth(guide = 'none') +
+      #     scale_size(guide='none') +
+      #     # guides(fill="none") +
+      #     theme(plot.margin = unit(c(0,0,0,0), "cm"),
+      #           # legend.position = c(0.9,0.7),
+      #           legend.position = "none",
+      #           legend.direction = "vertical",
+      #           legend.box.background = element_rect(color="black"))
+      # }
+      # 
+      # seas.resids[[i]] <- gg1
+      # 
+      # ################################################################################
+      # # refit torgegram to residuals
+      # DE_ssn$obs$resid = mod_train$cv_resid
       
       tg.orig <- Torgegram(
         formula = Cent.97.5~1,
@@ -259,12 +259,12 @@ for (water.year in water.years[2:length(water.years)]) {
         type = c("flowcon", "flowuncon", "euclid")
       )
       
-      tg.mod <- Torgegram(
-        formula = resid ~ 1,
-        ssn.object = DE_ssn,
-        bins=15, cutoff=max(DE_ssn$obs$upDist)/2,
-        type = c("flowcon", "flowuncon", "euclid")
-      )
+      # tg.mod <- Torgegram(
+      #   formula = resid ~ 1,
+      #   ssn.object = DE_ssn,
+      #   bins=15, cutoff=max(DE_ssn$obs$upDist)/2,
+      #   type = c("flowcon", "flowuncon", "euclid")
+      # )
       
       gg2 = ggplot() +
         geom_point(data=tg.orig$flowcon,
@@ -283,28 +283,32 @@ for (water.year in water.years[2:length(water.years)]) {
               legend.title = element_blank(),
               legend.box.background = element_rect(color="black"))
       
-      gg3 = ggplot() +
-        geom_point(data=tg.mod$flowcon, mapping=aes(dist, gamma, size=np),
-                   color="turquoise", alpha=0.7) +
-        geom_point(data=tg.mod$flowuncon, mapping=aes(dist, gamma, size=np),
-                   color="orange", alpha=0.7) +
-        geom_point(data=tg.mod$euclid, mapping=aes(dist, gamma, size=np),
-                   color="gray", alpha=0.7) +
-        xlab("Distance") + labs(title=paste0(seas.name, " Model Residuals")) +
-        ylab("Semivariance") +
-        theme_bw() + scale_size(guide = 'none')
+      # gg3 = ggplot() +
+      #   geom_point(data=tg.mod$flowcon, mapping=aes(dist, gamma, size=np),
+      #              color="turquoise", alpha=0.7) +
+      #   geom_point(data=tg.mod$flowuncon, mapping=aes(dist, gamma, size=np),
+      #              color="orange", alpha=0.7) +
+      #   geom_point(data=tg.mod$euclid, mapping=aes(dist, gamma, size=np),
+      #              color="gray", alpha=0.7) +
+      #   xlab("Distance") + labs(title=paste0(seas.name, " Model Residuals")) +
+      #   ylab("Semivariance") +
+      #   theme_bw() + scale_size(guide = 'none')
       
       seas.torgegram.orig[[i]] <- gg2
-      seas.torgegram.resid[[i]] <- gg3
+      # seas.torgegram.resid[[i]] <- gg3
     } # end if else variability
   } # end season loop
   
   ################################################################################
   
   # figure of seasonal results
-  gg = do.call('grid.arrange', c(seas.resids, seas.torgegram.orig, seas.torgegram.resid, ncol=5))
-  ggsave(paste0(path.root,'results/DE-flood-magnitude/cv-results-', water.year,'-model-results-AIC.png'), gg, device='png', width=7*2,
-         height=5*2, unit='in', dpi=300)
+  # gg = do.call('grid.arrange', c(seas.resids, seas.torgegram.orig, seas.torgegram.resid, ncol=5))
+  # ggsave(paste0(path.root,'results/DE-flood-magnitude/cv-results-', water.year,'-model-results-AIC.png'), gg, device='png', width=7*2,
+  #        height=5*2, unit='in', dpi=300)
+  
+  gg = do.call('grid.arrange', c(seas.torgegram.orig, ncol=5))
+  ggsave(paste0(path.root,'results/DE-flood-magnitude/cv-results-', water.year,'.png'), gg, device='png', width=7*2,
+         height=2*2, unit='in', dpi=300)
   
   # best model
   paste0("Water Year: ", water.year, ", Best model: ", df.AIC)
