@@ -1,6 +1,7 @@
 # Test Run of Torgegram for Delaware River Basin
 # https://usepa.github.io/SSN2/articles/introduction.html
 # https://pet221.github.io/SSNbler/articles/introduction.html
+# Elevation: https://cran.r-project.org/web/packages/elevatr/vignettes/introduction_to_elevatr.html
 
 rm(list=ls(all.names=TRUE)) ; cat('\014'); gc()
 
@@ -11,7 +12,7 @@ library(SSNbler)
 
 ################################################################################
 
-path.root = "C:/Users/sm6432/Projects/Spatial-Interpolation/"
+path.root = "C:/Users/sm6432/Projects/River-Network-Spatial-Interpolation/"
 # path.root = "/scratch/gpfs/GVILLARI/sm6432/Spatial-Interpolation/"
 
 # load station index
@@ -73,9 +74,36 @@ DE.flow = st_transform(DE.flow, crs.usa)
 DE.stations = st_transform(DE.stations, crs.usa)
 DE.stations.full = st_transform(DE.stations.full, crs.usa)
 
-# load flood magnitude model parameters
+# create predictions dataset from stream branches
+# https://gis.stackexchange.com/questions/277219/sf-equivalent-of-r-maptools-packages-spatiallinesmidpoints
+st_line_midpoints <- function(sf_lines = NULL) {
+  g <- st_geometry(sf_lines)
+  g_mids <- lapply(g, function(x) {
+    coords <- as.matrix(x)
+    # this is just a copypaste of View(maptools:::getMidpoints):
+    get_mids <- function (coords) {
+      dist <- sqrt((diff(coords[, 1])^2 + (diff(coords[, 2]))^2))
+      dist_mid <- sum(dist)/2
+      dist_cum <- c(0, cumsum(dist))
+      end_index <- which(dist_cum > dist_mid)[1]
+      start_index <- end_index - 1
+      start <- coords[start_index, ]
+      end <- coords[end_index, ]
+      dist_remaining <- dist_mid - dist_cum[start_index]
+      mid <- start + (end - start) * (dist_remaining/dist[start_index])
+      return(mid)
+    }
+    mids <- st_point(get_mids(coords))
+  })
+  out <- st_sfc(g_mids, crs = st_crs(sf_lines))
+  out <- st_sf(out)
+}
 
+DE.pts <- st_line_midpoints(DE.flow)
 
+# st_crs(DE.pts) == st_crs(DE.stations)
+# plot(DE.flow[,1])
+# plot(DE.pts)
 ################################################################################
 # format to SSN object
 
@@ -150,11 +178,11 @@ obs <- sites_to_lsn(
 )
 
 preds <- sites_to_lsn(
-  sites = DE.stations.full,
+  sites = DE.pts,
   edges = edges,
   save_local = TRUE,
   lsn_path = flow.path,
-  file_name = "pred.gpkg",
+  file_name = "pred-DE.gpkg",
   snap_tolerance = 100,
   overwrite = TRUE
 )
@@ -165,7 +193,8 @@ edges <- updist_edges(
   edges = edges,
   save_local = TRUE,
   lsn_path = flow.path,
-  calc_length = TRUE
+  calc_length = TRUE,
+  overwrite = T
 )
 
 names(edges)
@@ -173,12 +202,12 @@ names(edges)
 site.list <- updist_sites(
   sites = list(
     obs = obs,
-    pred = preds
-  ),
+    pred = preds),
   edges = edges,
   length_col = "Length",
   save_local = TRUE,
-  lsn_path = flow.path
+  lsn_path = flow.path,
+  overwrite = T
 )
 
 ggplot() +
@@ -221,14 +250,26 @@ DE_ssn <- ssn_assemble(
   lsn_path = flow.path,
   obs_sites = site.list$obs,
   preds_list = site.list[c("pred")],
-  ssn_path = paste0(path.root, "data/DE.ssn"),
+  ssn_path = paste0(path.root, "data/DE.ssn-v2"),
   import = TRUE,
   check = TRUE,
   afv_col = "afvArea",
   overwrite = TRUE
 )
 
-DE_ssn <- ssn_import(paste0(path.root, "data/DE.ssn"),
+DE_ssn <- ssn_assemble(
+  edges = edges,
+  lsn_path = flow.path,
+  obs_sites = site.list$obs,
+  preds_list = site.list[c("pred")],
+  ssn_path = paste0(path.root, "data/DE.ssn-v2"),
+  import = TRUE,
+  check = TRUE,
+  afv_col = "afvArea",
+  overwrite = TRUE
+)
+
+DE_ssn <- ssn_import(paste0(path.root, "data/DE.ssn-v2.ssn"),
                            predpts="pred")
 
 ################################################################################
@@ -254,6 +295,15 @@ ggplot() +
   coord_sf(datum = 4326) +
   scale_color_viridis_c(name="Mu: DJF Concurrent Precipitation") +
   theme_bw()
+
+################################################################################
+
+# add elevation data
+# https://cran.r-project.org/web/packages/elevatr/vignettes/introduction_to_elevatr.html
+obs.elev <- get_elev_point(DE_ssn$obs, src = "epqs")
+preds.elev <- get_elev_point(DE_ssn$preds$pred, src = "epqs")
+# write_sf(obs.elev, paste0(path.root, "data/obs.elevation.gpkg"))
+# write_sf(preds.elev, paste0(path.root, "data/preds.elevation.gpkg"))
 
 ################################################################################
 

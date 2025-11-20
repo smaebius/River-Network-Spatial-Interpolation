@@ -316,7 +316,15 @@ for (water.year in water.years[2:length(water.years)]) {
   
 } # end model parameter loop
 
-write.csv(df.AIC, paste0(path.root, 'results/DE-ssn-structure/seasonal-covariance-structure-DE-flood-magnitude.csv'), row.names = F)
+# write.csv(df.AIC, paste0(path.root, 'results/DE-ssn-structure/seasonal-covariance-structure-DE-flood-magnitude.csv'), row.names = F)
+
+################################################################################
+# spatial dependence change over time
+
+st.yr <- 1950
+en.yr <- 1960
+
+
 
 ################################################################################
 
